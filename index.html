@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>학점 계산기</title>
+  <style>
+    body {
+      background-color: #000;
+      color: white;
+      font-family: 'Helvetica Neue', sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+
+    .container {
+      background-color: white;
+      color: black;
+      padding: 2rem;
+      border-radius: 12px;
+      max-width: 500px;
+      width: 100%;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 1rem;
+    }
+
+    .subject {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 0.8rem;
+    }
+
+    input[type="number"] {
+      width: 60px;
+      padding: 0.4rem;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+    }
+
+    .button {
+      display: flex;
+      justify-content: center;
+      margin-top: 1.5rem;
+    }
+
+    button {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      border: none;
+      background-color: black;
+      color: white;
+      font-size: 1rem;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+    }
+
+    button::after {
+      content: "";
+      position: absolute;
+      background: radial-gradient(circle, rgba(255,255,255,0.4) 10%, transparent 10.01%);
+      background-repeat: no-repeat;
+      width: 100px;
+      height: 100px;
+      transform: scale(0);
+      border-radius: 50%;
+      opacity: 0;
+      pointer-events: none;
+      animation: none;
+    }
+
+    button:active::after {
+      left: var(--x);
+      top: var(--y);
+      opacity: 1;
+      transform: scale(1);
+      transition: transform 0.3s, opacity 0.8s;
+    }
+
+    #result {
+      text-align: center;
+      font-weight: bold;
+      margin-top: 1rem;
+    }
+
+    @keyframes ripple {
+      to {
+        transform: scale(4);
+        opacity: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>학점 계산기</h1>
+    <form id="gradeForm">
+      <div class="subject">수학세미나 (4학점) <input type="number" name="수학세미나" max="4.3" step="0.1" required></div>
+      <div class="subject">미분방정식 (3학점) <input type="number" name="미분방정식" max="4.3" step="0.1" required></div>
+      <div class="subject">미적분학II (3학점) <input type="number" name="미적분학II" max="4.3" step="0.1" required></div>
+      <div class="subject">일반물리학II (3학점) <input type="number" name="일반물리학II" max="4.3" step="0.1" required></div>
+      <div class="subject">정보과학프로젝트 (3학점) <input type="number" name="정보과학프로젝트" max="4.3" step="0.1" required></div>
+      <div class="subject">머신러닝과 딥러닝 (3학점) <input type="number" name="머신러닝과 딥러닝" max="4.3" step="0.1" required></div>
+      <div class="subject">세계사 (2학점) <input type="number" name="세계사" max="4.3" step="0.1" required></div>
+      <div class="subject">심화영어 (2학점) <input type="number" name="심화영어" max="4.3" step="0.1" required></div>
+      <div class="subject">독서와 개인 (2학점) <input type="number" name="독서와 개인" max="4.3" step="0.1" required></div>
+      <div class="button">
+        <button type="submit">GO</button>
+      </div>
+    </form>
+    <div id="result"></div>
+  </div>
+
+  <script>
+    const button = document.querySelector('button');
+    button.addEventListener('click', e => {
+      const x = e.clientX - e.target.getBoundingClientRect().left;
+      const y = e.clientY - e.target.getBoundingClientRect().top;
+      button.style.setProperty('--x', x + 'px');
+      button.style.setProperty('--y', y + 'px');
+    });
+
+    document.getElementById('gradeForm').addEventListener('submit', function (e) {
+      e.preventDefault();
+      const form = e.target;
+      const grades = {
+        '수학세미나': 4,
+        '미분방정식': 3,
+        '미적분학II': 3,
+        '일반물리학II': 3,
+        '정보과학프로젝트': 3,
+        '머신러닝과 딥러닝': 3,
+        '세계사': 2,
+        '심화영어': 2,
+        '독서와 개인': 2
+      };
+      let totalCredits = 0;
+      let weightedSum = 0;
+      for (const subject in grades) {
+        const grade = parseFloat(form.elements[subject].value);
+        const credit = grades[subject];
+        totalCredits += credit;
+        weightedSum += grade * credit;
+      }
+      const gpa = (weightedSum / totalCredits).toFixed(2);
+      document.getElementById('result').textContent = `계산된 GPA: ${gpa} / 4.3`;
+    });
+  </script>
+</body>
+</html>
