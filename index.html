@@ -36,8 +36,8 @@
       margin-bottom: 0.8rem;
     }
 
-    input[type="number"] {
-      width: 60px;
+    select {
+      width: 80px;
       padding: 0.4rem;
       border-radius: 4px;
       border: 1px solid #ccc;
@@ -89,28 +89,21 @@
       font-weight: bold;
       margin-top: 1rem;
     }
-
-    @keyframes ripple {
-      to {
-        transform: scale(4);
-        opacity: 0;
-      }
-    }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>학점 계산기</h1>
     <form id="gradeForm">
-      <div class="subject">수학세미나 (4학점) <input type="number" name="수학세미나" max="4.3" step="0.1" required></div>
-      <div class="subject">미분방정식 (3학점) <input type="number" name="미분방정식" max="4.3" step="0.1" required></div>
-      <div class="subject">미적분학II (3학점) <input type="number" name="미적분학II" max="4.3" step="0.1" required></div>
-      <div class="subject">일반물리학II (3학점) <input type="number" name="일반물리학II" max="4.3" step="0.1" required></div>
-      <div class="subject">정보과학프로젝트 (3학점) <input type="number" name="정보과학프로젝트" max="4.3" step="0.1" required></div>
-      <div class="subject">머신러닝과 딥러닝 (3학점) <input type="number" name="머신러닝과 딥러닝" max="4.3" step="0.1" required></div>
-      <div class="subject">세계사 (2학점) <input type="number" name="세계사" max="4.3" step="0.1" required></div>
-      <div class="subject">심화영어 (2학점) <input type="number" name="심화영어" max="4.3" step="0.1" required></div>
-      <div class="subject">독서와 개인 (2학점) <input type="number" name="독서와 개인" max="4.3" step="0.1" required></div>
+      <div class="subject">수학세미나 (4학점) <select name="수학세미나"></select></div>
+      <div class="subject">미분방정식 (3학점) <select name="미분방정식"></select></div>
+      <div class="subject">미적분학II (3학점) <select name="미적분학II"></select></div>
+      <div class="subject">일반물리학II (3학점) <select name="일반물리학II"></select></div>
+      <div class="subject">정보과학프로젝트 (3학점) <select name="정보과학프로젝트"></select></div>
+      <div class="subject">머신러닝과 딥러닝 (3학점) <select name="머신러닝과 딥러닝"></select></div>
+      <div class="subject">세계사 (2학점) <select name="세계사"></select></div>
+      <div class="subject">심화영어 (2학점) <select name="심화영어"></select></div>
+      <div class="subject">독서와 개인 (2학점) <select name="독서와 개인"></select></div>
       <div class="button">
         <button type="submit">GO</button>
       </div>
@@ -125,6 +118,31 @@
       const y = e.clientY - e.target.getBoundingClientRect().top;
       button.style.setProperty('--x', x + 'px');
       button.style.setProperty('--y', y + 'px');
+    });
+
+    const gradeMap = {
+      "A+": 4.3,
+      "A0": 4.0,
+      "A-": 3.7,
+      "B+": 3.3,
+      "B0": 3.0,
+      "B-": 2.7,
+      "C+": 2.3,
+      "C0": 2.0,
+      "C-": 1.7,
+      "D+": 1.3,
+      "D0": 1.0,
+      "F": 0.0
+    };
+
+    const selects = document.querySelectorAll('select');
+    selects.forEach(select => {
+      for (const grade in gradeMap) {
+        const option = document.createElement('option');
+        option.value = gradeMap[grade];
+        option.text = grade;
+        select.appendChild(option);
+      }
     });
 
     document.getElementById('gradeForm').addEventListener('submit', function (e) {
