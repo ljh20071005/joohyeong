@@ -100,14 +100,14 @@
       width: 0;
       height: 0;
       border-radius: 50%;
-      background: radial-gradient(circle, #888, transparent);
-      opacity: 0.5;
-      transition: width 0.6s ease, height 0.6s ease;
+      background: radial-gradient(circle, white, transparent);
+      opacity: 0.4;
+      transition: width 1.2s ease, height 1.2s ease;
     }
 
     button:hover::before {
-      width: 200px;
-      height: 200px;
+      width: 300px;
+      height: 300px;
     }
 
     #result {
@@ -155,7 +155,7 @@
       wrapper.className = 'subject';
 
       const name = document.createElement('div');
-      name.textContent = `${subject}  (${subjects[subject]})`;
+      name.textContent = `${subject}   (${subjects[subject]})`;
 
       const gradeControl = document.createElement('div');
       gradeControl.className = 'grade-control';
