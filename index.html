@@ -91,26 +91,23 @@
       overflow: hidden;
     }
 
-    button::after {
+    button::before {
       content: "";
       position: absolute;
-      background: radial-gradient(circle, rgba(255,255,255,0.4) 10%, transparent 10.01%);
-      background-repeat: no-repeat;
-      width: 100px;
-      height: 100px;
-      transform: scale(0);
+      top: var(--y);
+      left: var(--x);
+      transform: translate(-50%, -50%);
+      width: 0;
+      height: 0;
       border-radius: 50%;
-      opacity: 0;
-      pointer-events: none;
-      animation: none;
+      background: radial-gradient(circle, #888, transparent);
+      opacity: 0.5;
+      transition: width 0.6s ease, height 0.6s ease;
     }
 
-    button:active::after {
-      left: var(--x);
-      top: var(--y);
-      opacity: 1;
-      transform: scale(1);
-      transition: transform 0.3s, opacity 0.8s;
+    button:hover::before {
+      width: 200px;
+      height: 200px;
     }
 
     #result {
@@ -156,9 +153,9 @@
     for (const subject in subjects) {
       const wrapper = document.createElement('div');
       wrapper.className = 'subject';
-      
+
       const name = document.createElement('div');
-      name.textContent = `${subject} (${subjects[subject]}학점)`;
+      name.textContent = `${subject}  (${subjects[subject]})`;
 
       const gradeControl = document.createElement('div');
       gradeControl.className = 'grade-control';
@@ -198,11 +195,11 @@
     }
 
     const button = document.querySelector('button');
-    button.addEventListener('click', e => {
+    button.addEventListener('mousemove', e => {
       const x = e.clientX - e.target.getBoundingClientRect().left;
       const y = e.clientY - e.target.getBoundingClientRect().top;
-      button.style.setProperty('--x', x + 'px');
-      button.style.setProperty('--y', y + 'px');
+      button.style.setProperty('--x', `${x}px`);
+      button.style.setProperty('--y', `${y}px`);
     });
 
     form.addEventListener('submit', function (e) {
@@ -218,7 +215,7 @@
         weightedSum += gradeMap[grade] * credit;
       });
       const gpa = (weightedSum / totalCredits).toFixed(2);
-      document.getElementById('result').textContent = `${gpa} / 4.3`;
+      document.getElementById('result').textContent = `계산된 GPA: ${gpa} / 4.3`;
     });
   </script>
 </body>
