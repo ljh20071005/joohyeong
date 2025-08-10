@@ -67,7 +67,7 @@
 <script>
 const XLSM_PATH = './timeta.xlsm';
 const SHEET_NAME = '학생';
-const studentHeaderRe = /^\s*(\d{5})\s+(.+?)\s*$/; // "30611 이재근"
+const studentHeaderRe = /^\s*(\d{5})\s+(.+?)\s*$/;
 const removeTimeRe   = /\(\s*\d+\s*시간\s*\)$/;
 
 const courseToStudents = new Map(); // course -> Set(names)
@@ -192,7 +192,7 @@ function search(){
   });
 
   meta.innerHTML = `'` + name + `' 학생의 과목 수: <span class="count">` + courses.length +
-                   `</span> • 중복 제외 친구 수: <span class="count">` + allPeers.size + `</span>`;
+                   `</span>`;
 
   empty.style.display = 'none';
   table.style.display = 'table';
