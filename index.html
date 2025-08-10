@@ -5,18 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>같은 수업 친구 찾기 (XLSM 버전)</title>
 
-
-{
-  "headers": [
-    {
-      "source": "/(.*)",
-      "headers": [
-        { "key": "Access-Control-Allow-Origin", "value": "*" }
-      ]
-    }
-  ]
-}
-  
 <!-- SheetJS: XLSM 파서 -->
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
@@ -77,22 +65,15 @@
   </div>
 
 <script>
-/* ====== 설정 ====== */
-// 같은 폴더에 timeta.xlsm 파일을 두세요.
 const XLSM_PATH = './timeta.xlsm';
-// 시트 이름
 const SHEET_NAME = '학생';
+const studentHeaderRe = /^\s*(\d{5})\s+(.+?)\s*$/; // "30611 이재근"
+const removeTimeRe   = /\(\s*\d+\s*시간\s*\)$/;
 
-/* ====== 정규식 규칙 ====== */
-const studentHeaderRe = /^\s*(\d{5})\s+(.+?)\s*$/; // "30611 이재근" → 이름만 추출
-const removeTimeRe   = /\(\s*\d+\s*시간\s*\)$/;      // "(3시간)" 제거
-
-/* ====== 자료구조 ====== */
 const courseToStudents = new Map(); // course -> Set(names)
 const studentToCourses = new Map(); // name -> Set(courses)
 let loaded = false;
 
-/* ====== XLSM 로더 ====== */
 async function loadXLSM(){
   const warn = document.getElementById('warn');
   try {
@@ -102,13 +83,11 @@ async function loadXLSM(){
 
     const wb = XLSX.read(buf, { type: 'array' });
     if (!wb.Sheets[SHEET_NAME]) throw new Error('시트 "' + SHEET_NAME + '" 를 찾을 수 없습니다.');
-
-    // header:1 → 2차원 배열
     const rows = XLSX.utils.sheet_to_json(wb.Sheets[SHEET_NAME], { header: 1, raw: false });
+
     buildMaps(rows);
     buildNameDatalist();
     loaded = true;
-
     document.getElementById('empty').textContent = '학생 이름을 입력하고 검색을 눌러주세요.';
   } catch (e) {
     warn.style.display = 'block';
@@ -119,15 +98,13 @@ async function loadXLSM(){
   }
 }
 
-/* ====== 파싱 로직 (A~E: 월~금) ====== */
 function buildMaps(rows){
   let currentStudent = null;
-
   for (const row of rows){
     const a = (row?.[0] ?? '').trim();
     const m = a.match(studentHeaderRe);
     if (m){
-      currentStudent = m[2].trim(); // 이름만
+      currentStudent = m[2].trim();
       if (!studentToCourses.has(currentStudent)) studentToCourses.set(currentStudent, new Set());
       continue;
     }
@@ -138,7 +115,7 @@ function buildMaps(rows){
       if (!text) continue;
       if (text.includes('학점')) continue;
 
-      let norm = text.replace(removeTimeRe, '').trim(); // "(x시간)" 제거
+      let norm = text.replace(removeTimeRe, '').trim();
       if (!norm.includes('반')) continue;
       norm = norm.replace(/\s+/g, ' ');
 
@@ -149,7 +126,6 @@ function buildMaps(rows){
   }
 }
 
-/* ====== 자동완성(datalist) ====== */
 function buildNameDatalist(){
   const names = Array.from(studentToCourses.keys()).sort((a,b)=>a.localeCompare(b));
   const input = document.getElementById('nameInput');
@@ -160,10 +136,8 @@ function buildNameDatalist(){
   names.forEach(n => { const o=document.createElement('option'); o.value=n; dl.appendChild(o); });
 }
 
-/* ====== 유틸 ====== */
 function normalizeName(name){ return (name||'').trim(); }
 
-/* ====== 검색 동작 ====== */
 function search(){
   if (!loaded) return;
   const input = document.getElementById('nameInput');
@@ -207,7 +181,7 @@ function search(){
       peers.forEach(p => {
         const span = document.createElement('span');
         span.className = 'chip';
-        span.textContent = p; // 이름만
+        span.textContent = p;
         tdPeers.appendChild(span);
       });
     }
@@ -224,7 +198,6 @@ function search(){
   table.style.display = 'table';
 }
 
-/* ====== 초기화 ====== */
 function clearAll(){
   document.getElementById('nameInput').value = '';
   document.getElementById('tbody').innerHTML = '';
@@ -234,7 +207,6 @@ function clearAll(){
   document.getElementById('nameInput').focus();
 }
 
-/* ====== 시작 ====== */
 window.addEventListener('DOMContentLoaded', loadXLSM);
 </script>
 </body>
