@@ -4,7 +4,7 @@ from collections import defaultdict
 import pandas as pd
 
 # === 1) Load & parse EXACTLY per user's rules ===
-df = pd.read_excel("time.csv", sheet_name="학생", engine="openpyxl")
+df = pd.read_excel("timeta.xlsm", sheet_name="학생", engine="openpyxl")
 
 student_header_re = re.compile(r"^\s*(\d{5})\s+(.+?)\s*$")
 remove_time_re = re.compile(r"\(\s*\d+\s*시간\s*\)$")
