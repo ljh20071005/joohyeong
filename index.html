@@ -87,6 +87,7 @@ async function loadXLSM(){
 
     buildMaps(rows);
     buildNameDatalist();
+    applyFixes();  
     loaded = true;
     document.getElementById('empty').textContent = '학생 이름을 입력하고 검색을 눌러주세요.';
   } catch (e) {
@@ -198,6 +199,46 @@ function search(){
   table.style.display = 'table';
 }
 
+
+
+
+
+/* ====== 수동 교정(Overrides) ====== */
+// 필요할 때마다 여기에 추가/수정하면 됨
+const FIXES_REMOVE = {
+  "김주혁": ["기업가정신 및 기술창업교육 1반"],
+};
+// 예: 강제로 추가해야 하는 경우가 있으면 여기에
+const FIXES_ADD = {
+  // "학생이름": ["과목명 1반", "과목명 2반"]
+};
+
+function applyFixes() {
+  // 제거
+  for (const [stu, courses] of Object.entries(FIXES_REMOVE)) {
+    const set = studentToCourses.get(stu);
+    if (!set) continue;
+    courses.forEach(course => {
+      if (set.has(course)) set.delete(course);
+      const cset = courseToStudents.get(course);
+      if (cset) cset.delete(stu);
+    });
+    // 과목이 비어있으면 entry 정리(선택)
+    if (set.size === 0) studentToCourses.delete(stu);
+  }
+
+  // 추가
+  for (const [stu, courses] of Object.entries(FIXES_ADD)) {
+    if (!studentToCourses.has(stu)) studentToCourses.set(stu, new Set());
+    const sset = studentToCourses.get(stu);
+    courses.forEach(course => {
+      sset.add(course);
+      if (!courseToStudents.has(course)) courseToStudents.set(course, new Set());
+      courseToStudents.get(course).add(stu);
+    });
+  }
+}
+  
 function clearAll(){
   document.getElementById('nameInput').value = '';
   document.getElementById('tbody').innerHTML = '';
