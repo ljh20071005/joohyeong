@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>같은 수업 친구 찾기 (XLSM 버전)</title>
+<title>GSA</title>
 
 <!-- SheetJS: XLSM 파서 -->
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
@@ -38,14 +38,14 @@
 </style>
 </head>
 <body>
-  <h1>같은 수업 친구 찾기</h1>
-  <p class="hint">학생 이름을 검색하면, 표의 <b>1열</b>에 그 학생의 <b>과목(반)</b>, <b>2열</b>에 <b>같이 듣는 친구들(이름만)</b>이 나옵니다. 학번은 표시하지 않습니다.</p>
+  <h1>같은 수업 친구 찾기 (40기, 41기) </h1>
+  <p class="hint"> 학생 이름을 검색하세요. </p>
 
   <div id="warn" class="warn"></div>
 
   <div class="panel">
     <div class="row">
-      <input id="nameInput" type="text" placeholder="예: 김민준" onkeydown="if(event.key==='Enter') search()" />
+      <input id="nameInput" type="text" placeholder="예: 이주형" onkeydown="if(event.key==='Enter') search()" />
       <button onclick="search()">검색</button>
       <button onclick="clearAll()">초기화</button>
     </div>
