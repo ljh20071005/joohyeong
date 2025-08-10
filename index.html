@@ -1,81 +1,51 @@
-import re, json
-from pathlib import Path
-from collections import defaultdict
-import pandas as pd
-
-# === 1) Load & parse EXACTLY per user's rules ===
-df = pd.read_excel("timeta.xlsm", sheet_name="학생", engine="openpyxl")
-
-student_header_re = re.compile(r"^\s*(\d{5})\s+(.+?)\s*$")
-remove_time_re = re.compile(r"\(\s*\d+\s*시간\s*\)$")
-
-course_to_students = defaultdict(set)   # "과목명 n반" -> {이름들}
-student_to_courses = defaultdict(set)   # "이름" -> {"과목명 n반", ...}
-current_student = None
-
-for _, row in df.iterrows():
-    # A열에 학생 헤더가 등장하면 현재 학생 갱신
-    a = "" if pd.isna(row.iloc[0]) else str(row.iloc[0]).strip()
-    m = student_header_re.match(a)
-    if m:
-        current_student = m.group(2).strip()  # 이름만 사용 (학번 제외)
-        continue
-    if not current_student:
-        continue
-
-    # A~E열 = 월~금 시간표만 본다
-    for ci in range(min(5, len(row))):
-        cell = row.iloc[ci]
-        if pd.isna(cell):
-            continue
-        text = str(cell).strip()
-        if not text or "학점" in text:
-            continue
-        # "(x시간)" 제거 → "과목명 n반" 형태만 남긴다
-        text_norm = remove_time_re.sub("", text).strip()
-        if "반" not in text_norm:
-            continue
-        text_norm = re.sub(r"\s+", " ", text_norm)
-        course_to_students[text_norm].add(current_student)
-        student_to_courses[current_student].add(text_norm)
-
-# === 2) Build HTML page ===
-template = """<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>같은 수업 친구 찾기</title>
+<title>같은 수업 친구 찾기 (XLSM 버전)</title>
+
+<!-- SheetJS: XLSM 파서 -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+
 <style>
   :root { --bg:#0b1220; --panel:#101827; --muted:#94a3b8; --text:#e5e7eb; --accent:#60a5fa; }
-  * { box-sizing:border-box; }
-  body { margin:0; padding:32px; background:var(--bg); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,"Pretendard","Apple SD Gothic Neo","Noto Sans KR",Segoe UI,Roboto,Helvetica,Arial,sans-serif; }
+  * { box-sizing: border-box; }
+  body { margin:0; padding:32px; background:var(--bg); color:var(--text);
+         font-family:-apple-system,BlinkMacSystemFont,"Pretendard","Apple SD Gothic Neo","Noto Sans KR",Segoe UI,Roboto,Helvetica,Arial,sans-serif; }
   h1 { margin:0 0 12px; font-size:26px; }
   p.hint { margin:0 0 18px; color:var(--muted); }
-  .panel { background:linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02)); border:1px solid rgba(148,163,184,0.18); border-radius:18px; padding:18px; }
+  .panel { background:linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
+           border:1px solid rgba(148,163,184,0.18); border-radius:18px; padding:18px; }
   .row { display:flex; gap:10px; margin-bottom:14px; flex-wrap:wrap; }
-  input[type="text"] { flex:1; min-width:220px; padding:12px 14px; border-radius:12px; border:1px solid rgba(148,163,184,0.25); background:#0f172a; color:var(--text); outline:none; }
+  input[type="text"] { flex:1; min-width:220px; padding:12px 14px; border-radius:12px;
+                       border:1px solid rgba(148,163,184,0.25); background:#0f172a; color:var(--text); outline:none; }
   input[type="text"]::placeholder { color:#5b708e; }
-  button { padding:12px 16px; border-radius:12px; border:1px solid rgba(148,163,184,0.25); background:#13223a; color:var(--text); cursor:pointer; transition:transform .06s ease; }
+  button { padding:12px 16px; border-radius:12px; border:1px solid rgba(148,163,184,0.25);
+           background:#13223a; color:var(--text); cursor:pointer; transition:transform .06s ease; }
   button:hover { transform: translateY(-1px); }
+  .warn { background:#2a1120; border:1px solid #7f1d1d; padding:12px; border-radius:12px; color:#fecaca; margin-bottom:12px; display:none; }
+  .meta { margin-bottom:8px; color:var(--muted); }
+  .count { font-weight:600; color:var(--accent); }
+  .empty { padding:14px; color:var(--muted); }
+  .list { max-height:60vh; overflow:auto; }
   table { width:100%; border-collapse:separate; border-spacing:0; overflow:hidden; border-radius:14px; }
   thead th { text-align:left; padding:12px; background:#0f1a2c; border-bottom:1px solid rgba(148,163,184,0.2); position:sticky; top:0; }
   tbody td { padding:12px; border-bottom:1px solid rgba(148,163,184,0.15); vertical-align:top; }
   tr:hover td { background:rgba(96,165,250,0.06); }
-  .chip { display:inline-block; margin:4px 8px 4px 0; padding:6px 10px; border-radius:999px; background:rgba(96,165,250,0.12); border:1px solid rgba(96,165,250,0.25); }
-  .muted { color:var(--muted); }
-  .empty { padding:14px; color:var(--muted); }
-  .meta { margin-bottom:8px; color:var(--muted); }
-  .count { font-weight:600; color:var(--accent); }
-  .list { max-height: 60vh; overflow:auto; }
+  .chip { display:inline-block; margin:4px 8px 4px 0; padding:6px 10px; border-radius:999px;
+          background:rgba(96,165,250,0.12); border:1px solid rgba(96,165,250,0.25); }
 </style>
 </head>
 <body>
   <h1>같은 수업 친구 찾기</h1>
-  <p class="hint"> :) </p>
+  <p class="hint">학생 이름을 검색하면, 표의 <b>1열</b>에 그 학생의 <b>과목(반)</b>, <b>2열</b>에 <b>같이 듣는 친구들(이름만)</b>이 나옵니다. 학번은 표시하지 않습니다.</p>
+
+  <div id="warn" class="warn"></div>
+
   <div class="panel">
     <div class="row">
-      <input id="nameInput" type="text" placeholder="예: 이주형" onkeydown="if(event.key==='Enter') search()" />
+      <input id="nameInput" type="text" placeholder="예: 김민준" onkeydown="if(event.key==='Enter') search()" />
       <button onclick="search()">검색</button>
       <button onclick="clearAll()">초기화</button>
     </div>
@@ -83,104 +53,177 @@ template = """<!DOCTYPE html>
     <div class="list">
       <table id="resultTable" style="display:none;">
         <thead>
-          <tr><th style="width:42%;">과목(반)</th><th>같은 수업 친구들 <span class="muted">(이름만)</span></th></tr>
+          <tr>
+            <th style="width:42%;">과목(반)</th>
+            <th>같은 수업 친구들 <span class="muted">(이름만)</span></th>
+          </tr>
         </thead>
         <tbody id="tbody"></tbody>
       </table>
-      <div id="empty" class="empty">학생 이름을 입력하고 검색을 눌러주세요.</div>
+      <div id="empty" class="empty">엑셀을 불러오는 중이거나, 학생 이름을 입력하고 검색을 눌러주세요.</div>
     </div>
   </div>
 
 <script>
-  const courseToStudents = __COURSE_TO_STUDENTS__;
-  const studentToCourses = __STUDENT_TO_COURSES__;
+/* ====== 설정 ====== */
+// 같은 폴더에 timeta.xlsm 파일을 두세요.
+const XLSM_PATH = './timeta.xlsm';
+// 시트 이름
+const SHEET_NAME = '학생';
 
-  function normalizeName(name){ return (name||"").trim(); }
+/* ====== 정규식 규칙 ====== */
+const studentHeaderRe = /^\s*(\d{5})\s+(.+?)\s*$/; // "30611 이재근" → 이름만 추출
+const removeTimeRe   = /\(\s*\d+\s*시간\s*\)$/;      // "(3시간)" 제거
 
-  function search(){ 
-    const input = document.getElementById('nameInput');
-    const name = normalizeName(input.value);
-    const tbody = document.getElementById('tbody');
-    const table = document.getElementById('resultTable');
-    const empty = document.getElementById('empty');
-    const meta = document.getElementById('meta');
+/* ====== 자료구조 ====== */
+const courseToStudents = new Map(); // course -> Set(names)
+const studentToCourses = new Map(); // name -> Set(courses)
+let loaded = false;
 
-    tbody.innerHTML = '';
-    table.style.display = 'none';
-    empty.style.display = 'block';
-    meta.textContent = '';
+/* ====== XLSM 로더 ====== */
+async function loadXLSM(){
+  const warn = document.getElementById('warn');
+  try {
+    const res = await fetch(XLSM_PATH, { cache: 'no-store' });
+    if (!res.ok) throw new Error('HTTP ' + res.status + ' - ' + res.statusText);
+    const buf = await res.arrayBuffer();
 
-    if(!name) return;
+    const wb = XLSX.read(buf, { type: 'array' });
+    if (!wb.Sheets[SHEET_NAME]) throw new Error('시트 "' + SHEET_NAME + '" 를 찾을 수 없습니다.');
 
-    const courses = studentToCourses[name];
-    if(!courses || courses.length === 0){
-      empty.textContent = `'` + name + `' 학생을 찾지 못했거나 수강 정보가 없습니다.`;
-      return;
+    // header:1 → 2차원 배열
+    const rows = XLSX.utils.sheet_to_json(wb.Sheets[SHEET_NAME], { header: 1, raw: false });
+    buildMaps(rows);
+    buildNameDatalist();
+    loaded = true;
+
+    document.getElementById('empty').textContent = '학생 이름을 입력하고 검색을 눌러주세요.';
+  } catch (e) {
+    warn.style.display = 'block';
+    warn.innerHTML = '⚠️ timeta.xlsm 로드 실패: ' + e.message +
+                     '<br>· 파일이 index.html과 같은 폴더에 있는지 확인하세요.' +
+                     '<br>· 시트 이름이 "' + SHEET_NAME + '" 가 맞는지 확인하세요.';
+    console.error(e);
+  }
+}
+
+/* ====== 파싱 로직 (A~E: 월~금) ====== */
+function buildMaps(rows){
+  let currentStudent = null;
+
+  for (const row of rows){
+    const a = (row?.[0] ?? '').trim();
+    const m = a.match(studentHeaderRe);
+    if (m){
+      currentStudent = m[2].trim(); // 이름만
+      if (!studentToCourses.has(currentStudent)) studentToCourses.set(currentStudent, new Set());
+      continue;
+    }
+    if (!currentStudent) continue;
+
+    for (let ci = 0; ci <= 4 && ci < row.length; ci++){
+      let text = (row?.[ci] ?? '').trim();
+      if (!text) continue;
+      if (text.includes('학점')) continue;
+
+      let norm = text.replace(removeTimeRe, '').trim(); // "(x시간)" 제거
+      if (!norm.includes('반')) continue;
+      norm = norm.replace(/\s+/g, ' ');
+
+      if (!courseToStudents.has(norm)) courseToStudents.set(norm, new Set());
+      courseToStudents.get(norm).add(currentStudent);
+      studentToCourses.get(currentStudent).add(norm);
+    }
+  }
+}
+
+/* ====== 자동완성(datalist) ====== */
+function buildNameDatalist(){
+  const names = Array.from(studentToCourses.keys()).sort((a,b)=>a.localeCompare(b));
+  const input = document.getElementById('nameInput');
+  input.setAttribute('list','names');
+  let dl = document.getElementById('names');
+  if (!dl){ dl = document.createElement('datalist'); dl.id = 'names'; document.body.appendChild(dl); }
+  dl.innerHTML = '';
+  names.forEach(n => { const o=document.createElement('option'); o.value=n; dl.appendChild(o); });
+}
+
+/* ====== 유틸 ====== */
+function normalizeName(name){ return (name||'').trim(); }
+
+/* ====== 검색 동작 ====== */
+function search(){
+  if (!loaded) return;
+  const input = document.getElementById('nameInput');
+  const name = normalizeName(input.value);
+  const tbody = document.getElementById('tbody');
+  const table = document.getElementById('resultTable');
+  const empty = document.getElementById('empty');
+  const meta  = document.getElementById('meta');
+
+  tbody.innerHTML = '';
+  table.style.display = 'none';
+  empty.style.display = 'block';
+  meta.textContent = '';
+
+  if (!name) return;
+
+  const coursesSet = studentToCourses.get(name);
+  if (!coursesSet || coursesSet.size === 0){
+    empty.textContent = `'` + name + `' 학생을 찾지 못했거나 수강 정보가 없습니다.`;
+    return;
+  }
+
+  const courses = Array.from(coursesSet).sort((a,b)=>a.localeCompare(b));
+  const allPeers = new Set();
+
+  courses.forEach(course => {
+    const peers = Array.from(courseToStudents.get(course) || [])
+      .filter(n => n !== name)
+      .sort((a,b)=>a.localeCompare(b));
+    peers.forEach(p => allPeers.add(p));
+
+    const tr = document.createElement('tr');
+
+    const tdCourse = document.createElement('td');
+    tdCourse.textContent = course;
+
+    const tdPeers = document.createElement('td');
+    if (peers.length === 0){
+      tdPeers.innerHTML = '<span class="muted">같이 듣는 친구 없음</span>';
+    } else {
+      peers.forEach(p => {
+        const span = document.createElement('span');
+        span.className = 'chip';
+        span.textContent = p; // 이름만
+        tdPeers.appendChild(span);
+      });
     }
 
-    // 표 구성: 과목(반) → 같은 수업 친구들(이름만)
-    const allPeers = new Set();
-    courses.forEach(course => {
-      const peers = (courseToStudents[course] || []).filter(n => n !== name);
-      peers.forEach(p => allPeers.add(p));
+    tr.appendChild(tdCourse);
+    tr.appendChild(tdPeers);
+    tbody.appendChild(tr);
+  });
 
-      const tr = document.createElement('tr');
-      const tdCourse = document.createElement('td');
-      tdCourse.textContent = course;
+  meta.innerHTML = `'` + name + `' 학생의 과목 수: <span class="count">` + courses.length +
+                   `</span> • 중복 제외 친구 수: <span class="count">` + allPeers.size + `</span>`;
 
-      const tdPeers = document.createElement('td');
-      if(peers.length === 0){
-        tdPeers.innerHTML = '<span class="muted">같이 듣는 친구 없음</span>';
-      } else {
-        peers.forEach(p => {
-          const span = document.createElement('span');
-          span.className = 'chip';
-          span.textContent = p; // 이름만
-          tdPeers.appendChild(span);
-        });
-      }
-      tr.appendChild(tdCourse);
-      tr.appendChild(tdPeers);
-      tbody.appendChild(tr);
-    });
+  empty.style.display = 'none';
+  table.style.display = 'table';
+}
 
-    meta.innerHTML = `'` + name + `' 학생의 과목 수: <span class="count">` + courses.length + `</span> • 중복 제외 친구 수: <span class="count">` + allPeers.size + `</span>`;
+/* ====== 초기화 ====== */
+function clearAll(){
+  document.getElementById('nameInput').value = '';
+  document.getElementById('tbody').innerHTML = '';
+  document.getElementById('resultTable').style.display = 'none';
+  document.getElementById('empty').style.display = 'block';
+  document.getElementById('meta').textContent = '';
+  document.getElementById('nameInput').focus();
+}
 
-    empty.style.display = 'none';
-    table.style.display = 'table';
-  }
-
-  function clearAll(){
-    document.getElementById('nameInput').value = '';
-    document.getElementById('tbody').innerHTML = '';
-    document.getElementById('resultTable').style.display = 'none';
-    document.getElementById('empty').style.display = 'block';
-    document.getElementById('meta').textContent = '';
-    document.getElementById('nameInput').focus();
-  }
-
-  // datalist 자동완성
-  (function initAutocomplete(){
-    const names = Object.keys(studentToCourses).sort();
-    const input = document.getElementById('nameInput');
-    input.setAttribute('list','names');
-    const datalist = document.createElement('datalist');
-    datalist.id = 'names';
-    names.forEach(n => {
-      const o = document.createElement('option');
-      o.value = n;
-      datalist.appendChild(o);
-    });
-    document.body.appendChild(datalist);
-  })();
+/* ====== 시작 ====== */
+window.addEventListener('DOMContentLoaded', loadXLSM);
 </script>
 </body>
 </html>
-"""
-
-html = template.replace("__COURSE_TO_STUDENTS__", json.dumps({k: sorted(v) for k, v in course_to_students.items()}, ensure_ascii=False))\
-               .replace("__STUDENT_TO_COURSES__", json.dumps({k: sorted(v) for k, v in student_to_courses.items()}, ensure_ascii=False))
-
-out_path = Path("/mnt/data/classmates_search_v2.html")
-out_path.write_text(html, encoding="utf-8")
-str(out_path)
