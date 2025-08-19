@@ -65,7 +65,7 @@
   </div>
 
 <script>
-const XLSM_PATH = './timeta2.xlsm';
+const XLSM_PATH = './timeta3.xlsm';
 const SHEET_NAME = '학생';
 const studentHeaderRe = /^\s*(\d{5})\s+(.+?)\s*$/;
 const removeTimeRe   = /\(\s*\d+\s*시간\s*\)$/;
@@ -92,7 +92,7 @@ async function loadXLSM(){
     document.getElementById('empty').textContent = '학생 이름을 입력하고 검색을 눌러주세요.';
   } catch (e) {
     warn.style.display = 'block';
-    warn.innerHTML = '⚠️ timeta2.xlsm 로드 실패: ' + e.message +
+    warn.innerHTML = '⚠️ timeta3.xlsm 로드 실패: ' + e.message +
                      '<br>· 파일이 index.html과 같은 폴더에 있는지 확인하세요.' +
                      '<br>· 시트 이름이 "' + SHEET_NAME + '" 가 맞는지 확인하세요.';
     console.error(e);
